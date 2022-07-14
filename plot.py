@@ -121,6 +121,48 @@ def chart_surface_data(inlet: inlets.Inlet, limits: List[float], data_fn):
     plt.legend()
 
 
+def chart_deep_and_surface(inlet: inlets.Inlet, limits: List[float], data_fn):
+    plt.clf()
+    surface_time, surface_data = data_fn(inlet, inlets.Category.SURFACE)
+    shallow_time, shallow_data = data_fn(inlet, inlets.Category.DEEP)
+    middle_time, middle_data = data_fn(inlet, inlets.Category.DEEPER)
+    deep_time, deep_data = data_fn(inlet, inlets.Category.DEEPEST)
+
+    if len(limits) > 1:
+        surface_time, surface_data = zip(
+            *[
+                [t, d]
+                for t, d in zip(surface_time, surface_data)
+                if limits[0] < d < limits[1]
+            ]
+        )
+        shallow_time, shallow_data = zip(
+            *[
+                [t, d]
+                for t, d in zip(shallow_time, shallow_data)
+                if limits[0] < d < limits[1]
+            ]
+        )
+        middle_time, middle_data = zip(
+            *[
+                [t, d]
+                for t, d in zip(middle_time, middle_data)
+                if limits[0] < d < limits[1]
+            ]
+        )
+        deep_time, deep_data = zip(
+            *[[t, d] for t, d in zip(deep_time, deep_data) if limits[0] < d < limits[1]]
+        )
+    plt.plot(
+        surface_time,
+        surface_data,
+        "xg",
+        label=utils.label_from_bounds(*inlet.surface_bounds),
+    )
+    # TODO average the deep, deeper and deepest data for plotting
+    plt.legend()
+
+
 def chart_temperatures(
     inlet: inlets.Inlet, limits: Dict[str, List[float]], use_averages: bool
 ):
@@ -142,6 +184,23 @@ def chart_temperatures(
     plt.title(f"{inlet.name} Surface Water Temperature")
     plt.savefig(
         figure_path(f"{utils.normalize(inlet.name)}-surface-temperature{average}.png")
+    )
+
+
+def chart_temperatures_select(
+    inlet: inlets.Inlet, limits: Dict[str, List[float]], use_averages: bool
+):
+    average = "-average" if use_averages else ""
+    ylabel = "Temperature (C)"
+    data_fn = lambda inlet, bucket: inlet.get_temperature_data(
+        bucket, before=END, do_average=use_averages
+    )
+    # TODO change limits
+    chart_deep_and_surface(inlet, limits["surface"], data_fn)
+    plt.ylabel(ylabel)
+    plt.title(f"{inlet.name} Deep and Surface Water Temperature")
+    plt.savefig(
+        figure_path(f"{utils.normalize(inlet.name)}-deep-surface-temperature{average}.png")
     )
 
 
@@ -1187,5 +1246,96 @@ def main():
     plt.close()
 
 
-if __name__ == "__main__":
-    main()
+def main_burke():
+    parser = argparse.ArgumentParser()
+    # inlet retrieval args
+    parser.add_argument("-r", "--from-saved", action="store_true")
+    parser.add_argument("-n", "--from-netcdf", action="store_true")
+    parser.add_argument("-e", "--from-erddap", action="store_true")
+    parser.add_argument("-c", "--from-csv", action="store_true")
+    parser.add_argument("-d", "--data", type=str, nargs="?", default="data")
+    # plot args
+    parser.add_argument("-l", "--no-limits", action="store_true")
+    parser.add_argument("-i", "--inlet-name", type=str, nargs="+", default=[])
+    parser.add_argument("-k", "--limit-name", type=str, nargs="+", default=[])
+    parser.add_argument("-I", "--remove-inlet-name", type=str, nargs="+", default=[])
+    parser.add_argument("-b", "--plot-buckets", action="store_true")
+    parser.add_argument("-a", "--plot-averages", action="store_true")
+    parser.add_argument("-A", "--plot-annual", action="store_true")
+    parser.add_argument("-R", "--plot-raw", action="store_true")
+    parser.add_argument("-s", "--plot-sampling", action="store_true")
+    parser.add_argument("-D", "--plot-decadal", action="store_true")
+    parser.add_argument(
+        "-g", "--geojson", type=str, nargs="?", default="burke_inlet.geojson"
+    )
+    parser.add_argument("--plot-all", action="store_true")
+    args = parser.parse_args()
+    osd_data_dir = '/usb/OSD_Data_Archive/'  # Access cruise and netCDF data
+    hakai_data_dir = '/home/hourstonh/Documents/inlets/hakai_data/'
+    inlet_list = inlets.get_burke_inlet(
+        osd_data_dir, hakai_data_dir,
+        from_saved=args.from_saved,
+        from_netcdf=args.from_netcdf,
+        from_erddap=args.from_erddap,
+        from_csv=args.from_csv,
+        inlet_names=args.inlet_name,
+        drop_names=args.remove_inlet_name,
+        keep_names=args.limit_name,
+        geojson_file=args.geojson,
+    )
+    plt.figure(figsize=(8, 6))
+    if args.plot_all:
+        (
+            plot_annual,
+            plot_sampling,
+            plot_average,
+            plot_raw,
+            plot_buckets,
+            plot_decadal,
+        ) = (
+            True,
+            True,
+            True,
+            True,
+            False,
+            False,
+        )
+    else:
+        (
+            plot_annual,
+            plot_sampling,
+            plot_average,
+            plot_raw,
+            plot_buckets,
+            plot_decadal,
+        ) = (
+            args.plot_annual,
+            args.plot_sampling,
+            args.plot_averages,
+            args.plot_raw,
+            args.plot_buckets,
+            args.plot_decadal,
+        )
+    ensure_figure_path()
+    if plot_annual:
+        chart_annual_temperature_averages(inlet_list, not args.no_limits)
+    if plot_decadal:
+        for inlet in inlet_list:
+            chart_temperature_decade(inlet)
+    if plot_average:
+        for inlet in inlet_list:
+            do_chart(
+                inlet,
+                "temperature",
+                not args.no_limits,
+                chart_temperatures,
+                True,
+            )
+    # # TODO Chart requested temperature
+    # for inlet in inlet_list:
+    #     chart_temperatures_select(inlet, not args.no_limits, True)
+    plt.close()
+
+
+if __name__ == "__main_burke__":
+    main_burke()

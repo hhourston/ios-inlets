@@ -938,7 +938,7 @@ class Inlet(object):
         )
 
 
-def get_burke_inlet_hakai(osd_data_dir, hakai_data_dir,
+def get_burke_inlet(osd_data_dir, hakai_data_dir,
     from_saved=False,
     from_netcdf=False,
     from_erddap=False,
@@ -1231,7 +1231,7 @@ def main():
     # )
     osd_data_dir = '/usb/OSD_Data_Archive/'  # Access cruise and netCDF data
     hakai_data_dir = '/home/hourstonh/Documents/inlets/hakai_data/'
-    get_burke_inlet_hakai(
+    get_burke_inlet(
         osd_data_dir, hakai_data_dir,
         from_saved=False,
         from_netcdf=True,
