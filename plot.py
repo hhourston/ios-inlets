@@ -1077,7 +1077,7 @@ def chart_monthly_sample(inlet: inlets.Inlet):
     plt.axis("auto")
 
 
-def main():
+def main_all():
     parser = argparse.ArgumentParser()
     # inlet retrieval args
     parser.add_argument("-r", "--from-saved", action="store_true")
@@ -1246,7 +1246,7 @@ def main():
     plt.close()
 
 
-def main_burke():
+def main():
     parser = argparse.ArgumentParser()
     # inlet retrieval args
     parser.add_argument("-r", "--from-saved", action="store_true")
@@ -1283,6 +1283,18 @@ def main_burke():
         keep_names=args.limit_name,
         geojson_file=args.geojson,
     )
+    # inlet_list = inlets.get_burke_inlet(
+    #     osd_data_dir, hakai_data_dir,
+    #     from_saved=False,
+    #     from_netcdf=True,
+    #     from_erddap=False,
+    #     from_csv=True,
+    #     inlet_names=args.inlet_name,
+    #     drop_names=args.remove_inlet_name,
+    #     keep_names=args.limit_name,
+    #     geojson_file=args.geojson,
+    # )
+    print('inlet_list:', inlet_list)
     plt.figure(figsize=(8, 6))
     if args.plot_all:
         (
@@ -1337,5 +1349,5 @@ def main_burke():
     plt.close()
 
 
-if __name__ == "__main_burke__":
-    main_burke()
+if __name__ == "__main__":
+    main()
