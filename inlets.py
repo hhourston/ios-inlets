@@ -938,6 +938,142 @@ class Inlet(object):
         )
 
 
+def get_burke_inlet_hakai(osd_data_dir, hakai_data_dir,
+    from_saved=False,
+    from_netcdf=False,
+    from_erddap=False,
+    from_csv=False,
+    inlet_names=[],
+    drop_names=[],
+    keep_names=[],
+    geojson_file="burke_inlet.geojson",  # "inlets.geojson",
+) -> List[Inlet]:
+    inlet_list = []
+    with open(geojson_file) as f:
+        contents = json.load(f)["features"]
+        for content in contents:
+            name = content["properties"]["name"]
+            if len(keep_names) > 0 and not all(
+                name_part in name for name_part in keep_names
+            ):
+                continue
+            if len(inlet_names) > 0 and not any(
+                name_part in name for name_part in inlet_names
+            ):
+                continue
+            if len(drop_names) > 0 and any(
+                name_part in name for name_part in drop_names
+            ):
+                continue
+            area = content["properties"]["area"]
+            boundaries = content["properties"]["boundaries"]
+            seasons = (
+                content["properties"]["seasons"]
+                if "seasons" in content["properties"]
+                else []
+            )
+            limits = (
+                content["properties"]["limits"]
+                if "limits" in content["properties"]
+                else {}
+            )
+            polygon = Polygon(content["geometry"]["coordinates"][0])
+            if "shallow boundaries" in content["properties"]:
+                inlet_list.append(
+                    Inlet(
+                        name,
+                        area,
+                        polygon,
+                        boundaries,
+                        limits,
+                        clear_old_data=not from_saved,
+                        shallow=content["properties"]["shallow boundaries"],
+                        seasons=seasons,
+                    )
+                )
+            else:
+                inlet_list.append(
+                    Inlet(
+                        name,
+                        area,
+                        polygon,
+                        boundaries,
+                        limits,
+                        clear_old_data=not from_saved,
+                        seasons=seasons,
+                    )
+                )
+    if not from_saved:
+        # if from_erddap:
+        #     for inlet in inlet_list:
+        #         for data_frame in erddap.pull_data_for(inlet):
+        #             inlet.add_data_from_erddap(data_frame)
+        if from_netcdf:
+            for root, _, files in os.walk(os.path.join(osd_data_dir, "netCDF_Data")):
+                for item in fnmatch.filter(files, "*.nc"):
+                    file_name = os.path.join(root, item)
+                    data = xarray.open_dataset(file_name)
+                    for inlet in inlet_list:
+                        if inlet.contains(
+                            latitude=data.latitude, longitude=data.longitude
+                        ):
+                            try:
+                                inlet.add_data_from_netcdf(data)
+                            except:
+                                logging.exception(f"Exception occurred in {file_name}")
+                                raise
+
+        shell_exts = ["bot", "che", "ctd", "ubc", "med", "xbt", "cur"]
+        # make a list of all elements in shell_exts followed by their str.upper() versions
+        exts = [
+            item
+            for sublist in [[ext, ext.upper()] for ext in shell_exts]
+            for item in sublist
+        ]
+        for root, dirs, files in os.walk(osd_data_dir):
+            for ext in exts:
+                for item in fnmatch.filter(files, "*." + ext):
+                    file_name = os.path.join(root, item)
+                    try:
+                        shell = ios.ShellFile.fromfile(file_name, process_data=False)
+                    except Exception:
+                        logging.exception(f"Error encountered reading {file_name}")
+                        continue
+                    for inlet in inlet_list:
+                        if inlet.contains(**shell.get_location()):
+                            # Use item instead of file_name because the netcdf files don't store
+                            # path information. They also do not store the .nc extension, so this
+                            # should be reasonable
+                            if not inlet.has_data_from(item.lower()):
+                                try:
+                                    shell.process_data()
+                                    inlet.add_data_from_shell(shell)
+                                except Exception:
+                                    logging.exception(
+                                        f"Error encountered when processing {file_name}"
+                                    )
+                                    continue
+            if "HISTORY" in dirs:
+                dirs.remove("HISTORY")
+
+        # hakai data
+        if from_csv:
+            for file in fnmatch.filter(os.listdir(hakai_data_dir), "*.csv"):
+                data = pandas.read_csv(os.path.join(hakai_data_dir, file))
+                for inlet in inlet_list:
+                    inside_inlet = data.loc[
+                        lambda frame: [
+                            inlet.contains(longitude=lon, latitude=lat)
+                            for lon, lat in zip(frame["Longitude"], frame["Latitude"])
+                        ]
+                    ]
+                    if len(inside_inlet) == 0:
+                        continue
+                    inlet.add_data_from_csv(inside_inlet, file)
+
+    return inlet_list
+
+
 def get_inlets(
     data_dir,
     from_saved=False,
@@ -1079,19 +1215,28 @@ def get_inlets(
 def main():
     import argparse
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-d", "--data", type=str, nargs="?", default="data")
-    parser.add_argument("-e", "--from-erddap", action="store_true")
-    parser.add_argument("-n", "--from-netcdf", action="store_true")
-    parser.add_argument("-c", "--from-csv", action="store_true")
-    args = parser.parse_args()
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument("-d", "--data", type=str, nargs="?", default="data")
+    # parser.add_argument("-e", "--from-erddap", action="store_true")
+    # parser.add_argument("-n", "--from-netcdf", action="store_true")
+    # parser.add_argument("-c", "--from-csv", action="store_true")
+    # args = parser.parse_args()
     print("Preparing database")
-    get_inlets(
-        args.data,
+    # get_inlets(
+    #     args.data,
+    #     from_saved=False,
+    #     from_netcdf=args.from_netcdf,
+    #     from_erddap=args.from_erddap,
+    #     from_csv=args.from_csv,
+    # )
+    osd_data_dir = '/usb/OSD_Data_Archive/'  # Access cruise and netCDF data
+    hakai_data_dir = '/home/hourstonh/Documents/inlets/hakai_data/'
+    get_burke_inlet_hakai(
+        osd_data_dir, hakai_data_dir,
         from_saved=False,
-        from_netcdf=args.from_netcdf,
-        from_erddap=args.from_erddap,
-        from_csv=args.from_csv,
+        from_netcdf=True,
+        from_erddap=False,
+        from_csv=True,
     )
 
 
