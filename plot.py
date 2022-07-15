@@ -1,5 +1,8 @@
 import argparse
 import datetime
+
+import numpy as np
+
 import inlets
 import itertools
 import matplotlib
@@ -163,6 +166,11 @@ def chart_surface_and_deep(inlet: inlets.Inlet, limits: List[float], data_fn):
         label=utils.label_from_bounds(
             inlet.deep_bounds[0], inlet.deepest_bounds[1]),
     )
+    # Run a straight line through the deep T data
+    # Compute the best-fit line
+    theta = np.polyfit(deep_time, deep_data, 1)
+    fit = theta[1] + theta[0] * deep_time
+    plt.plot(deep_time, fit, c='r')
     plt.legend()
 
 
