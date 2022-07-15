@@ -32,6 +32,7 @@ class Category(Enum):
     DEEPEST = 7
     USED_DEEP = 8
     ALL = 9
+    # ALL_DEEP = 10  # Category includes DEEP, DEEPER and DEEPEST
 
 
 def get_length(arr):
@@ -276,6 +277,11 @@ class Inlet(object):
             boundaries[2],
             boundaries[3] if len(boundaries) > 3 else None,
         )
+        # TODO add bounds for 200-400+ m deep?
+        # self.deep_all_bounds = (
+        #     boundaries[0],
+        #     boundaries[3] if len(boundaries) > 3 else None,
+        # )
         self.polygon = polygon
         self.limits = limits
         self.used_files = set()
@@ -307,6 +313,9 @@ class Inlet(object):
             else self.deepest_bounds
             if bucket == Category.DEEPEST
             else (self.shallow_bounds[1], self.deep_bounds[0])
+            # TODO add bucket for all deep?
+            # if bucket == Category.ALL_DEEP
+            # else ()
             if bucket == Category.IGNORE
             else (self.surface_bounds[0], self.shallow_bounds[1])
             if bucket == Category.USED_SURFACE

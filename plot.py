@@ -81,7 +81,10 @@ def chart_deep_data(inlet: inlets.Inlet, limits: List[float], data_fn):
         label=utils.label_from_bounds(*inlet.deeper_bounds),
     )
     plt.plot(
-        deep_time, deep_data, "xb", label=utils.label_from_bounds(*inlet.deepest_bounds)
+        deep_time,
+        deep_data,
+        "xb",
+        label=utils.label_from_bounds(*inlet.deepest_bounds)
     )
     plt.legend()
 
@@ -121,12 +124,16 @@ def chart_surface_data(inlet: inlets.Inlet, limits: List[float], data_fn):
     plt.legend()
 
 
-def chart_deep_and_surface(inlet: inlets.Inlet, limits: List[float], data_fn):
+def chart_surface_and_deep(inlet: inlets.Inlet, limits: List[float], data_fn):
+    # Copied from chart_surface_data() and chart_deep_data()
+    # data_fn(inlet, bucket): inlet.get_temperature_data(
+    #         bucket, before=END, do_average=use_averages
+    #     )
     plt.clf()
     surface_time, surface_data = data_fn(inlet, inlets.Category.SURFACE)
-    shallow_time, shallow_data = data_fn(inlet, inlets.Category.DEEP)
-    middle_time, middle_data = data_fn(inlet, inlets.Category.DEEPER)
-    deep_time, deep_data = data_fn(inlet, inlets.Category.DEEPEST)
+    # USED_DEEP Category includes DEEP, DEEPER and DEEPEST, which is
+    # what we want
+    deep_time, deep_data = data_fn(inlet, inlets.Category.USED_DEEP)
 
     if len(limits) > 1:
         surface_time, surface_data = zip(
@@ -136,22 +143,12 @@ def chart_deep_and_surface(inlet: inlets.Inlet, limits: List[float], data_fn):
                 if limits[0] < d < limits[1]
             ]
         )
-        shallow_time, shallow_data = zip(
-            *[
-                [t, d]
-                for t, d in zip(shallow_time, shallow_data)
-                if limits[0] < d < limits[1]
-            ]
-        )
-        middle_time, middle_data = zip(
-            *[
-                [t, d]
-                for t, d in zip(middle_time, middle_data)
-                if limits[0] < d < limits[1]
-            ]
-        )
         deep_time, deep_data = zip(
-            *[[t, d] for t, d in zip(deep_time, deep_data) if limits[0] < d < limits[1]]
+            *[
+                [t, d]
+                for t, d in zip(deep_time, deep_data)
+                if limits[0] < d < limits[1]
+            ]
         )
     plt.plot(
         surface_time,
@@ -159,7 +156,13 @@ def chart_deep_and_surface(inlet: inlets.Inlet, limits: List[float], data_fn):
         "xg",
         label=utils.label_from_bounds(*inlet.surface_bounds),
     )
-    # TODO average the deep, deeper and deepest data for plotting
+    plt.plot(
+        deep_time,
+        deep_data,
+        "+m",
+        label=utils.label_from_bounds(
+            inlet.deep_bounds[0], inlet.deepest_bounds[1]),
+    )
     plt.legend()
 
 
@@ -187,7 +190,7 @@ def chart_temperatures(
     )
 
 
-def chart_temperatures_select(
+def chart_temperatures_surface_deep(
     inlet: inlets.Inlet, limits: Dict[str, List[float]], use_averages: bool
 ):
     average = "-average" if use_averages else ""
@@ -196,11 +199,11 @@ def chart_temperatures_select(
         bucket, before=END, do_average=use_averages
     )
     # TODO change limits
-    chart_deep_and_surface(inlet, limits["surface"], data_fn)
+    chart_surface_and_deep(inlet, limits["surface"], data_fn)
     plt.ylabel(ylabel)
-    plt.title(f"{inlet.name} Deep and Surface Water Temperature")
+    plt.title(f"{inlet.name} Surface and Deep Water Temperature")
     plt.savefig(
-        figure_path(f"{utils.normalize(inlet.name)}-deep-surface-temperature{average}.png")
+        figure_path(f"{utils.normalize(inlet.name)}-surface-deep-temperature{average}.png")
     )
 
 
@@ -517,6 +520,22 @@ def chart_annual_temperature_averages(inlet_list: List[inlets.Inlet], use_limits
         "Temperature (C)",
         "Surface Water Temperature Annual Averages",
         lambda inlet: inlet.limits["temperature"]["surface"]
+        if use_limits and "temperature" in inlet.limits
+        else [],
+    )
+
+
+def chart_annual_temperature_averages_select(inlet_list: List[inlets.Inlet], use_limits: bool):
+    print("Producing annual temperature plots")
+    # TODO add USED_SURFACE_DEEP Category
+    do_chart_annual_averages(
+        inlet_list,
+        lambda inlet: inlet.get_temperature_data(
+            inlets.Category.USED_SURFACE_DEEP, do_average=True, before=END
+        ),
+        "Temperature (C)",
+        "Surface and Deep Water Temperature Annual Averages",
+        lambda inlet: inlet.limits["temperature"]["deep"]
         if use_limits and "temperature" in inlet.limits
         else [],
     )
@@ -1329,23 +1348,21 @@ def main():
             args.plot_decadal,
         )
     ensure_figure_path()
-    if plot_annual:
-        chart_annual_temperature_averages(inlet_list, not args.no_limits)
-    if plot_decadal:
-        for inlet in inlet_list:
-            chart_temperature_decade(inlet)
+    # if plot_annual:
+    #     # TODO complete this code
+    #     # chart_annual_temperature_averages_select(inlet_list, use_limits:Bool)
+    #     chart_annual_temperature_averages_select(inlet_list, not args.no_limits)
     if plot_average:
         for inlet in inlet_list:
+            # TODO complete this code first
+            # do_chart(inlet, kind, use_limits, chart_fn, use_averages:Bool)
             do_chart(
                 inlet,
                 "temperature",
-                not args.no_limits,
-                chart_temperatures,
+                False,  # not args.no_limits,
+                chart_temperatures_surface_deep,
                 True,
             )
-    # # TODO Chart requested temperature
-    # for inlet in inlet_list:
-    #     chart_temperatures_select(inlet, not args.no_limits, True)
     plt.close()
 
 
