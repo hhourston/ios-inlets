@@ -137,7 +137,6 @@ def chart_surface_and_deep(inlet: inlets.Inlet, limits: List[float], data_fn):
     # USED_DEEP Category includes DEEP, DEEPER and DEEPEST, which is
     # what we want
     deep_time, deep_data = data_fn(inlet, inlets.Category.USED_DEEP)
-    print('deep time', deep_time)
 
     if len(limits) > 1:
         surface_time, surface_data = zip(
@@ -157,7 +156,7 @@ def chart_surface_and_deep(inlet: inlets.Inlet, limits: List[float], data_fn):
     plt.plot(
         surface_time,
         surface_data,
-        "xg",
+        "xb",
         label=utils.label_from_bounds(*inlet.surface_bounds),
     )
     plt.plot(
@@ -171,13 +170,16 @@ def chart_surface_and_deep(inlet: inlets.Inlet, limits: List[float], data_fn):
     # Compute the best-fit line
     # TODO fix x_values so it has the same uneven spacing as deep_time
     # Convert deep_time to seconds since [1970]
-    x_values = np.linspace(0, 1, len(deep_time))
-    coeffs = np.polyfit(x_values, deep_data, 1)
-    fit_eqn = np.poly1d(coeffs)
-    y_hat = fit_eqn(x_values)
-    y_hat_sorted = [
-        i for _, i in sorted(zip(deep_time, y_hat))
+    # x_values = np.linspace(0, 1, len(deep_time))
+    deep_time_arr = np.array([*deep_time])
+    x_values = (deep_time_arr - np.min(deep_time_arr)) / datetime.timedelta(days=1)
+    x_values_sorted = sorted(x_values)
+    deep_data_sorted = [
+        i for _, i in sorted(zip(x_values, deep_data))
     ]
+    coeffs = np.polyfit(x_values_sorted, deep_data_sorted, 1)
+    fit_eqn = np.poly1d(coeffs)
+    y_hat_sorted = fit_eqn(x_values_sorted)
     plt.plot(sorted(deep_time), y_hat_sorted, c='r')
 
     plt.legend()
