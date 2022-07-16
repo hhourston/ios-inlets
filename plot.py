@@ -137,6 +137,7 @@ def chart_surface_and_deep(inlet: inlets.Inlet, limits: List[float], data_fn):
     # USED_DEEP Category includes DEEP, DEEPER and DEEPEST, which is
     # what we want
     deep_time, deep_data = data_fn(inlet, inlets.Category.USED_DEEP)
+    print('deep time', deep_time)
 
     if len(limits) > 1:
         surface_time, surface_data = zip(
@@ -168,6 +169,8 @@ def chart_surface_and_deep(inlet: inlets.Inlet, limits: List[float], data_fn):
     )
     # Run a straight line through the deep T data
     # Compute the best-fit line
+    # TODO fix x_values so it has the same uneven spacing as deep_time
+    # Convert deep_time to seconds since [1970]
     x_values = np.linspace(0, 1, len(deep_time))
     coeffs = np.polyfit(x_values, deep_data, 1)
     fit_eqn = np.poly1d(coeffs)
