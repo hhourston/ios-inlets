@@ -168,9 +168,12 @@ def chart_surface_and_deep(inlet: inlets.Inlet, limits: List[float], data_fn):
     )
     # Run a straight line through the deep T data
     # Compute the best-fit line
-    theta = np.polyfit(deep_time, deep_data, 1)
-    fit = theta[1] + theta[0] * deep_time
-    plt.plot(deep_time, fit, c='r')
+    x_values = np.linspace(0, 1, len(deep_time))
+    coeffs = np.polyfit(x_values, deep_data, 1)
+    fit_eqn = np.poly1d(coeffs)
+    y_hat = fit_eqn(x_values)
+    plt.plot(deep_time, y_hat, c='r')
+
     plt.legend()
 
 
