@@ -172,8 +172,10 @@ def chart_surface_and_deep(inlet: inlets.Inlet, limits: List[float], data_fn):
     coeffs = np.polyfit(x_values, deep_data, 1)
     fit_eqn = np.poly1d(coeffs)
     y_hat = fit_eqn(x_values)
-    sort_idx = deep_time.argsort()
-    plt.plot(sorted(deep_time), y_hat[sort_idx], c='r')
+    y_hat_sorted = [
+        i for _, i in sorted(zip(deep_time, y_hat))
+    ]
+    plt.plot(sorted(deep_time), y_hat_sorted, c='r')
 
     plt.legend()
 
