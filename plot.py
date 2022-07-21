@@ -217,7 +217,7 @@ def chart_temperatures_surface_deep(
     data_fn = lambda inlet, bucket: inlet.get_temperature_data(
         bucket, before=END, do_average=use_averages
     )
-    # TODO change limits
+    # TODO change limits?
     chart_surface_and_deep(inlet, limits["surface"], data_fn)
     plt.ylabel(ylabel)
     plt.title(f"{inlet.name} Surface and Deep Water Temperature")
@@ -397,7 +397,9 @@ def do_annual_work(inlet_list, data_fn, averaging_fn, limit_fn):
     plt.legend()
 
 
-def do_annual_work_parts(inlet_list, data_fn, averaging_fn, y_label, title, limit_fn):
+def do_annual_work_parts(
+        inlet_list, data_fn, averaging_fn, y_label, title, limit_fn
+):
     areas = set(inlet.area for inlet in inlet_list)
     for area in areas:
         do_annual_work(
@@ -456,6 +458,88 @@ def chart_temperature_anomalies(inlet_list: List[inlets.Inlet], use_limits: bool
         if use_limits and "temperature" in inlet.limits
         else [],
     )
+
+
+def do_annual_work_single(
+        inlet, data_fn, averaging_fn, limit_fn, title, y_label, category_dict
+):
+    # Plot data from a single inlet using depth categories defined in
+    # category_dict (a dictionary)
+    # averaging_fn: either annual_averaging() or anomalies_averaging()
+    plt.clf()
+    for key, line_style in zip(
+            category_dict.keys(), INLET_LINES[:len(category_dict)]
+    ):
+        depth_limit, category = key, category_dict[key]
+        limits = limit_fn(inlet, depth_limit)
+        totals = {}
+        times, data = data_fn(inlet, category)
+
+        for time, datum in zip(times, data):
+            if len(limits) > 0 and not (limits[0] < datum < limits[1]):
+                continue
+            utils.update_totals(totals, time.year, datum)
+
+        averages = averaging_fn(totals, data)
+        years, values = zip(*sorted(averages.items(), key=lambda item: item[0]))
+
+        # Update label to depth bucket
+        if key == 'surface':
+            label = utils.label_from_bounds(*inlet.surface_bounds)
+        elif key == 'deep':
+            label = utils.label_from_bounds(
+                inlet.deep_bounds[0], inlet.deepest_bounds[1])
+        plt.plot(years, values, label=label)
+
+    plt.legend()
+
+    # do_annual_work_parts()
+    plt.ylabel(y_label)
+    plt.title(title)
+    plt.savefig(
+        figure_path(f"{utils.normalize(title)}.png")
+    )
+    return
+
+
+def chart_temperature_anomalies_single(
+        inlet_list: List[inlets.Inlet], use_limits: bool
+):
+    # Plot annual surface and deep anomalies on the same plot
+    # for just a single inlet?
+    print("Producing temperature anomaly plots for surface and deep")
+    data_fn_modified = lambda inlet, category: inlet.get_temperature_data(
+            category, do_average=True, before=END
+        )
+    limit_fn_modified = lambda inlet, depth: inlet.limits["temperature"][
+        depth] if use_limits and "temperature" in inlet.limits else []
+
+    category_dict = {'surface': inlets.Category.SURFACE,
+                     'deep': inlets.Category.USED_DEEP}
+
+    y_label = "Temperature (C)"
+
+    # Probably don't need to write a chart_anomalies_single() function
+    # chart_anomalies(data_fn=lambda inlet:inlet.get_temperature_data)
+    # params: inlet_list, data_fn, anomalies_averaging, y_label, title, use_limits
+
+    # do_annual_work_parts(data_fn, averaging_fn=anomalies_averaging)
+    # params: inlet_list, data_fn, averaging_fn, y_label, title, limit_fn
+
+    # for area in areas, do_annual_work(inlet_list, data_fn, averaging_fn)
+    # perform the averaging, plot all inlets data in selected area
+    # --------------------------------------------------------------------
+
+    # do_annual work()
+    for inlet in inlet_list:
+        title = "{} Surface and Deep Water Temperature Anomalies".format(
+            inlet)
+        do_annual_work_single(
+            inlet, data_fn_modified, anomalies_averaging, limit_fn_modified,
+            title, y_label, category_dict
+        )
+
+    return
 
 
 def chart_salinity_anomalies(inlet_list: List[inlets.Inlet], use_limits: bool):
@@ -544,20 +628,25 @@ def chart_annual_temperature_averages(inlet_list: List[inlets.Inlet], use_limits
     )
 
 
-def chart_annual_temperature_averages_select(inlet_list: List[inlets.Inlet], use_limits: bool):
+def chart_annual_temperature_averages_single(inlet_list: List[inlets.Inlet], use_limits: bool):
     print("Producing annual temperature plots")
-    # TODO add USED_SURFACE_DEEP Category
-    do_chart_annual_averages(
-        inlet_list,
-        lambda inlet: inlet.get_temperature_data(
-            inlets.Category.USED_SURFACE_DEEP, do_average=True, before=END
-        ),
-        "Temperature (C)",
-        "Surface and Deep Water Temperature Annual Averages",
-        lambda inlet: inlet.limits["temperature"]["deep"]
-        if use_limits and "temperature" in inlet.limits
-        else [],
+    y_label = "Temperature (C)"
+
+    data_fn_modified = lambda inlet, category: inlet.get_temperature_data(
+        category, do_average=True, before=END
     )
+    limit_fn_modified = lambda inlet, depth: inlet.limits["temperature"][
+        depth] if use_limits and "temperature" in inlet.limits else []
+
+    category_dict = {'surface': inlets.Category.SURFACE,
+                     'deep': inlets.Category.USED_DEEP}
+
+    for inlet in inlet_list:
+        title = "Surface and Deep Water Temperature Annual Averages"
+        do_annual_work_single(
+            inlet, data_fn_modified, annual_averaging, limit_fn_modified,
+            title, y_label, category_dict
+        )
 
 
 def chart_annual_salinity_averages(inlet_list: List[inlets.Inlet], use_limits: bool):
@@ -1367,13 +1456,13 @@ def main():
             args.plot_decadal,
         )
     ensure_figure_path()
-    # if plot_annual:
-    #     # TODO complete this code
-    #     # chart_annual_temperature_averages_select(inlet_list, use_limits:Bool)
+    if plot_annual:
+        chart_annual_temperature_averages_single(inlet_list, not args.no_limits)
+        chart_temperature_anomalies_single(inlet_list, not args.no_limits)
+    #     chart_annual_temperature_averages_select(inlet_list, use_limits:Bool)
     #     chart_annual_temperature_averages_select(inlet_list, not args.no_limits)
     if plot_average:
         for inlet in inlet_list:
-            # TODO complete this code first
             # do_chart(inlet, kind, use_limits, chart_fn, use_averages:Bool)
             do_chart(
                 inlet,
