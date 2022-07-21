@@ -493,7 +493,7 @@ def do_annual_work_single(
         elif key == 'deep':
             label = utils.label_from_bounds(
                 inlet.deep_bounds[0], inlet.deepest_bounds[1])
-        plt.plot(years, values, label=label)
+        plt.plot(years, values, line_style, label=label)
 
     plt.legend()
 
