@@ -535,14 +535,13 @@ def chart_temperature_anomalies_single(
     # --------------------------------------------------------------------
 
     # do_annual work()
-    for inlet in inlet_list:
+    for inlet_obj in inlet_list:
         title = "{} Surface and Deep Water Temperature Anomalies".format(
-            inlet)
+            inlet_obj.name)
         do_annual_work_single(
-            inlet, data_fn_modified, anomalies_averaging, limit_fn_modified,
+            inlet_obj, data_fn_modified, anomalies_averaging, limit_fn_modified,
             title, y_label, category_dict
         )
-
     return
 
 
@@ -645,10 +644,11 @@ def chart_annual_temperature_averages_single(inlet_list: List[inlets.Inlet], use
     category_dict = {'surface': inlets.Category.SURFACE,
                      'deep': inlets.Category.USED_DEEP}
 
-    for inlet in inlet_list:
-        title = "Surface and Deep Water Temperature Annual Averages"
+    for inlet_obj in inlet_list:
+        title = "{} Surface and Deep Water Temperature Annual Averages".format(
+            inlet_obj.name)
         do_annual_work_single(
-            inlet, data_fn_modified, annual_averaging, limit_fn_modified,
+            inlet_obj, data_fn_modified, annual_averaging, limit_fn_modified,
             title, y_label, category_dict
         )
 
