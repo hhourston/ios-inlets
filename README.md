@@ -45,6 +45,12 @@ To get annual plots for all inlets, run
 
     $ poetry run plot -A
 
+To access prepared data from an existing `inlets_data.db` file, run
+
+    $ poetry run plot -r
+
+See `METHOD.md` for a full list of `plot.py` flags.
+
 ## GeoJSON Properties
 
 When adding water bodies, certain property keys are picked up and added to the python object to influence its behaviour:

@@ -472,8 +472,11 @@ def do_annual_work_single(
     ):
         depth_limit, category = key, category_dict[key]
         limits = limit_fn(inlet, depth_limit)
+        print('limits:', limits)
         totals = {}
         times, data = data_fn(inlet, category)
+        print('times:', times)
+        print('data:', data)
 
         for time, datum in zip(times, data):
             if len(limits) > 0 and not (limits[0] < datum < limits[1]):
@@ -481,6 +484,7 @@ def do_annual_work_single(
             utils.update_totals(totals, time.year, datum)
 
         averages = averaging_fn(totals, data)
+        print('averages:', averages)
         years, values = zip(*sorted(averages.items(), key=lambda item: item[0]))
 
         # Update label to depth bucket
@@ -1421,7 +1425,7 @@ def main():
     #     keep_names=args.limit_name,
     #     geojson_file=args.geojson,
     # )
-    print('inlet_list:', inlet_list)
+    # print('inlet_list:', inlet_list)
     plt.figure(figsize=(8, 6))
     if args.plot_all:
         (

@@ -56,3 +56,10 @@ toward sources with more samples:
 combining all data sources
 1. If looking at yearly plots, the monthly averages are combined to produce a
 yearly average
+
+`plot.py` flags (incomplete):  
+Flag | Long flag | Short description   
+--- | --- | ---  
+-r | --from-saved | Data from saved database  
+-n | --from-netcdf | Original data from netCDF  
+-e | --from-erddap | Original data from ERDDAP  
