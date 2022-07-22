@@ -76,4 +76,4 @@ Flag | Long flag | Short description
 -s | --plot-sampling | Plot sampling statistics  
 -D | --plot-decadal | Plot decadal data
 -g | --geojson | Geojson file containing inlet boundary polygons; default changed to burke_inlet.geojson for now  
- | --plot-all |  
+n/a | --plot-all |  
