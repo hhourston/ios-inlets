@@ -60,6 +60,19 @@ yearly average
 `plot.py` flags (incomplete):  
 Flag | Long flag | Short description   
 --- | --- | ---  
--r | --from-saved | Data from saved database  
--n | --from-netcdf | Original data from netCDF  
--e | --from-erddap | Original data from ERDDAP  
+-r | --from-saved | Use aggregated data from saved database  
+-n | --from-netcdf | Use original data from netCDF format  
+-e | --from-erddap | Use original data from ERDDAP  
+-c | --from-csv | Use original data from CSV format  
+-d | --data |  
+-l | --no-limits |  
+-i | --inlet-name |  
+-k | --limit-name |  
+-I | --remove-inlet-name |  
+-b | --plot-buckets |  
+-a | --plot-averages | Plot monthly-averaged data  
+-A | --plot-annual | Plot annually-averaged and annual anomaly data  
+-R | --plot-raw | Plot raw data  
+-s | --plot-sampling | Plot sampling statistics  
+-D | --plot-decadal | Plot decadal data
+-g | --geojson | Geojson file containing inlet boundary polygons; default changed to burke_inlet.geojson for now  
